@@ -7,3 +7,8 @@ data "terraform_remote_state" "compute" {
     }
   }
 }
+
+
+data "aws_route53_zone" "main_zone" {
+zone_id = "Z0084331259547XDSW20Q"
+}
