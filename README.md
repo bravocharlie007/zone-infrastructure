@@ -12,8 +12,33 @@ The zone-infrastructure module is part of a multi-workspace Terraform setup that
 
 ## Architecture
 
+### Complete Infrastructure Overview
 ```
 ┌─────────────────────────────────────────────────────────────┐
+│                    WORKSPACE ARCHITECTURE                   │
+├─────────────────────────────────────────────────────────────┤
+│  1. VPC Workspace                                           │
+│     • Creates VPC (15.0.0.0/16)                            │
+│     • Public subnets across multiple AZs                   │
+│     • Internet Gateway & Route Tables                      │
+│     • Outputs: vpc_id, subnet_id_list                      │
+│                                                             │
+│  2. Compute Workspace (depends on VPC)                     │
+│     • EC2 instances for gaming                              │
+│     • Application Load Balancer                            │
+│     • Security Groups                                       │
+│     • Elastic IPs                                           │
+│     • Outputs: alb_dns_name, alb_zone_id                   │
+│                                                             │
+│  3. Zone Infrastructure (depends on Compute)               │
+│     • Route53 hosted zones                                  │
+│     • DNS alias records → ALB                              │
+│     • SSM parameters for zone IDs                          │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│                    DNS STRUCTURE                            │
+├─────────────────────────────────────────────────────────────┤
 │                    Main Zone (ec2deployer.com)              │
 │                    Zone ID: Z0084331259547XDSW20Q           │
 ├─────────────────────────────────────────────────────────────┤
@@ -26,21 +51,42 @@ The zone-infrastructure module is part of a multi-workspace Terraform setup that
 │  │  • supertest.ec2deployer.com → NS delegation           ││
 │  └─────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────┐
-│                     Dependencies                            │
-├─────────────────────────────────────────────────────────────┤
-│  Compute Workspace (Remote State)                          │
-│  • alb_dns_name    ← ALB DNS endpoint                      │
-│  • alb_zone_id     ← ALB hosted zone ID                    │
-└─────────────────────────────────────────────────────────────┘
 ```
+
+### Deployment Order
+**CRITICAL: Workspaces must be deployed in this exact order:**
+
+1. **VPC Workspace** → Creates network foundation
+2. **Compute Workspace** → Creates gaming instances and load balancer  
+3. **Zone Infrastructure** → Creates DNS routing (this repository)
 
 ## Workspace Dependencies
 
-This module depends on the **compute** workspace through Terraform remote state, which must provide:
-- `alb_dns_name`: The DNS name of the Application Load Balancer
-- `alb_zone_id`: The hosted zone ID of the ALB for alias records
+### Complete Dependency Chain
+```
+VPC Workspace
+    ↓ (provides vpc_id, subnet_id_list)
+Compute Workspace  
+    ↓ (provides alb_dns_name, alb_zone_id)
+Zone Infrastructure ← YOU ARE HERE
+```
+
+### Required Remote State Outputs
+
+**From Compute Workspace:**
+- `alb_dns_name`: DNS name of the Application Load Balancer
+- `alb_zone_id`: Hosted zone ID of the ALB for alias records
+
+**From VPC Workspace (via Compute):**
+- `vpc_id`: VPC identifier for security groups
+- `subnet_id_list`: Public subnet IDs for ALB placement
+
+### Terraform Cloud Workspace Configuration
+
+All workspaces use organization: `EC2-DEPLOYER-DEV`
+- `vpc` → Creates network foundation
+- `compute` → Creates gaming infrastructure  
+- `zone-infrastructure` → Creates DNS routing (this repository)
 
 ## Resources Created
 
@@ -127,22 +173,45 @@ All resources are tagged with:
 - `Name`/`NAME`: Formatted resource name
 - `TYPE`: Resource type identifier
 
-## Security Considerations ⚠️
+## Security Analysis ⚠️
 
-**Gaming Infrastructure Security:**
+**CRITICAL: After reviewing your complete infrastructure (VPC, Compute, Zone), serious security vulnerabilities were identified.**
 
-For a **family gaming setup**, see `GAMING_SECURITY.md` for practical, simplified security recommendations that balance protection with ease of use.
+### 🚨 IMMEDIATE ACTION REQUIRED
 
-**Configuration Security:**
+**Current Security Issues in Compute Workspace:**
+1. **SSH open to internet** (`0.0.0.0/0`) with password authentication enabled
+2. **Missing gaming ports** (RDP 3389, Steam ports, etc.)
+3. **No VPN or secure access method** for family members
+4. **Overly permissive security groups** 
 
-1. **Sensitive Values**: While defaults are provided, sensitive values should be managed via:
-   - Environment variables: `export TF_VAR_org="your-org"`
-   - Terraform Cloud variables (encrypted)
-   - terraform.tfvars (excluded from git)
+### Security Assessment Correction
 
-2. **State Security**: Ensure Terraform Cloud workspace has appropriate access controls and encrypted remote state.
+**My Initial "Simplified" Recommendations Were INADEQUATE** after seeing your actual infrastructure. The enterprise-grade security I initially suggested (VPN, bastion hosts, MFA) is **actually necessary** because:
 
-3. **Zone ID Management**: The main zone ID is now properly referenced via variables instead of hard-coded values.
+- Your EC2 instances are directly exposed to the internet
+- SSH is open to the world with password auth enabled  
+- No secure access path for gaming clients
+- Missing critical gaming security measures
+
+### Required Fixes (Compute Workspace)
+
+See `GAMING_SECURITY.md` for detailed implementation:
+
+1. **Deploy WireGuard VPN server** (family connects through this)
+2. **Remove SSH access from 0.0.0.0/0** (VPN-only access)
+3. **Add RDP (3389) through VPN only** for gaming
+4. **Disable password authentication** in user data
+5. **Add gaming-specific ports** (Steam, Discord, etc.)
+
+### DNS Layer Security (This Repository)
+
+**Configuration Security**: 
+- All sensitive values now support environment variables (`TF_VAR_org`, `TF_VAR_main_zone_id`, etc.)
+- Proper variable typing and validation
+- Best practices documented in terraform.tfvars.example
+
+**Zone ID Management**: Fixed hard-coded values, now properly referenced via variables.
 
 ## Recommendations
 
