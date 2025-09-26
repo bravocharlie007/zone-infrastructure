@@ -1,5 +1,7 @@
 variable "org" {
-  default = "EC2-DEPLOYER-DEV"
+  type        = string
+  description = "Terraform Cloud organization name"
+  default     = "EC2-DEPLOYER-DEV"
 }
 
 variable "environment" {
@@ -14,14 +16,19 @@ variable "region" {
 }
 
 variable "domain" {
-  default = "ec2deployer.com"
+  type        = string
+  description = "Base domain name for the project"
+  default     = "ec2deployer.com"
 }
 
 variable "previous_workspace" {
-  default = "compute"
+  type        = string
+  description = "Name of the previous workspace for remote state dependency"
+  default     = "compute"
 }
 
 variable "main_zone_id" {
-  default = "Z0084331259547XDSW20Q"
-
+  type        = string
+  description = "Route53 zone ID for the main domain"
+  default     = "Z0084331259547XDSW20Q"
 }
