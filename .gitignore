@@ -1,5 +1,19 @@
+# IDE files
 /.idea/
 *.iml
+
+# Terraform files
 /.terraform/
-terraform.*
-*.lock.hcl
+terraform.tfstate*
+terraform.tfvars
+*.tfplan
+*.tfplan.*
+.terraform.lock.hcl
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.log
