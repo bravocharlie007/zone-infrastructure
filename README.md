@@ -81,6 +81,8 @@ This module depends on the **compute** workspace through Terraform remote state,
 | `previous_workspace` | string | `"compute"` | Name of compute workspace for remote state |
 | `main_zone_id` | string | `"Z0084331259547XDSW20Q"` | Main zone ID for NS records |
 
+**Note**: All variables can be overridden via `terraform.tfvars` or environment variables (`TF_VAR_<variable_name>`).
+
 ### Outputs
 
 | Output | Description |
@@ -127,17 +129,20 @@ All resources are tagged with:
 
 ## Security Considerations ⚠️
 
-**Important Security Notes:**
+**Gaming Infrastructure Security:**
 
-1. **Hard-coded Zone IDs**: The main zone ID `Z0084331259547XDSW20Q` is hard-coded in multiple files. Consider using variables or data sources for better security and flexibility.
+For a **family gaming setup**, see `GAMING_SECURITY.md` for practical, simplified security recommendations that balance protection with ease of use.
 
-2. **Organization Exposure**: The Terraform Cloud organization name "EC2-DEPLOYER-DEV" is exposed in the code. While not necessarily sensitive, consider using environment variables.
+**Configuration Security:**
 
-3. **Domain Information**: The domain `ec2deployer.com` is hard-coded. For production deployments, consider parameterizing this.
+1. **Sensitive Values**: While defaults are provided, sensitive values should be managed via:
+   - Environment variables: `export TF_VAR_org="your-org"`
+   - Terraform Cloud variables (encrypted)
+   - terraform.tfvars (excluded from git)
 
-4. **Provider Source**: There's a commented-out provider source line in `providers.tf` (`#source = "hashicorps/aws"`) which could cause issues. This should either be uncommented with the correct source `hashicorp/aws` or removed.
+2. **State Security**: Ensure Terraform Cloud workspace has appropriate access controls and encrypted remote state.
 
-5. **State Security**: Ensure Terraform Cloud workspace has appropriate access controls and that remote state is encrypted.
+3. **Zone ID Management**: The main zone ID is now properly referenced via variables instead of hard-coded values.
 
 ## Recommendations
 

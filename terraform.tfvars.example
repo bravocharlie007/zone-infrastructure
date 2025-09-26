@@ -1,7 +1,9 @@
 # Example Terraform Variables Configuration
 # Copy this file to terraform.tfvars and update with your values
+# You can also set these via environment variables: TF_VAR_<variable_name>
 
 # Terraform Cloud Organization
+# Can also be set via: export TF_VAR_org="your-org-name"
 org = "EC2-DEPLOYER-DEV"
 
 # Deployment Environment
@@ -11,6 +13,7 @@ environment = "dev"
 region = "us-east-1"
 
 # Base domain for the project
+# Keep this as a variable for flexibility across environments
 domain = "ec2deployer.com"
 
 # Previous workspace name for remote state dependency
@@ -18,4 +21,5 @@ previous_workspace = "compute"
 
 # Main Route53 Zone ID (for NS record delegation)
 # This should be the zone ID of your main domain
+# Can also be set via: export TF_VAR_main_zone_id="your-zone-id"
 main_zone_id = "Z0084331259547XDSW20Q"
